@@ -35,9 +35,8 @@ class LocalMicrosoftService:
                 "refresh_token": getattr(cfg, "LOCAL_MS_REFRESH_TOKEN", ""),
                 "assigned_at": time.time()
             }
-        mailbox = db_manager.get_one_unused_local_mailbox()
+        mailbox = db_manager.get_and_lock_unused_local_mailbox()
         if mailbox:
-            db_manager.update_local_mailbox_status(mailbox["email"], 1)
             res = dict(mailbox)
             res["assigned_at"] = time.time()
             return res
