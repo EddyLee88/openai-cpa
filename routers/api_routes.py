@@ -486,6 +486,9 @@ def account_action(data: dict, token: str = Depends(verify_token)):
         elif action == "push_sub2api":
             if not getattr(core_engine.cfg, 'ENABLE_SUB2API_MODE', False): return {"status": "error",
                                                                                    "message": "🚫 推送失败：未开启 Sub2API 模式！"}
+            proxy_obj = parse_sub2api_proxy(cfg.SUB2API_DEFAULT_PROXY)
+            if proxy_obj:
+                token_data["sub2api_proxy"] = proxy_obj
             client = Sub2APIClient(api_url=getattr(core_engine.cfg, 'SUB2API_URL', ''),
                                    api_key=getattr(core_engine.cfg, 'SUB2API_KEY', ''))
             success, resp = client.add_account(token_data)
@@ -503,9 +506,10 @@ async def export_sub2api_accounts(req: ExportReq, token: str = Depends(verify_to
         if not tokens: return {"status": "error", "message": "未提取到Token"}
 
         sub2api_settings = getattr(core_engine.cfg, '_c', {}).get("sub2api_mode", {})
+        proxy_obj = parse_sub2api_proxy(cfg.SUB2API_DEFAULT_PROXY)
         accounts_list = []
         for td in tokens:
-            accounts_list.append({
+            acc = {
                 "name": str(td.get("email", "unknown"))[:64],
                 "platform": "openai", "type": "oauth",
                 "credentials": {"refresh_token": td.get("refresh_token", "")},
@@ -513,9 +517,12 @@ async def export_sub2api_accounts(req: ExportReq, token: str = Depends(verify_to
                 "priority": int(sub2api_settings.get("account_priority", 1)),
                 "rate_multiplier": float(sub2api_settings.get("account_rate_multiplier", 1.0)),
                 "extra": {"load_factor": int(sub2api_settings.get("account_load_factor", 10))}
-            })
+            }
+            if proxy_obj:
+                acc["proxy_key"] = proxy_obj["proxy_key"]
+            accounts_list.append(acc)
         return {"status": "success",
-                "data": {"exported_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"), "proxies": [],
+                "data": {"exported_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"), "proxies": [proxy_obj] if proxy_obj else [],
                          "accounts": accounts_list}}
     except Exception as e:
         return {"status": "error", "message": str(e)}
@@ -1168,3 +1175,37 @@ async def post_clash_deploy(req: ClashDeployReq, token: str = Depends(verify_tok
 async def post_clash_update(req: ClashUpdateReq, token: str = Depends(verify_token)):
     success, msg = clash_manager.patch_and_update(req.sub_url, req.target)
     return {"status": "success" if success else "error", "message": msg}
+
+
+def parse_sub2api_proxy(proxy_url: str):
+    """提取代理URL为Sub2API所需格式"""
+    if not proxy_url:
+        return None
+    try:
+        from urllib.parse import urlparse
+        parsed = urlparse(proxy_url)
+        protocol = parsed.scheme
+        host = parsed.hostname
+        port = parsed.port
+        username = parsed.username or ""
+        password = parsed.password or ""
+
+        if not protocol or not host or not port:
+            return None
+
+        proxy_key = f"{protocol}|{host}|{port}|{username}|{password}"
+        proxy_dict = {
+            "proxy_key": proxy_key,
+            "name": "openai-cpa",
+            "protocol": protocol,
+            "host": host,
+            "port": port,
+            "status": "active"
+        }
+        if username and password:
+            proxy_dict["username"] = username
+            proxy_dict["password"] = password
+
+        return proxy_dict
+    except:
+        return None

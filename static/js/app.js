@@ -309,6 +309,9 @@ createApp({
                 if (this.config.sub2api_mode.test_model === undefined) {
                     this.config.sub2api_mode.test_model = 'gpt-5.2';
                 }
+                if (this.config.sub2api_mode.default_proxy === undefined) {
+                    this.config.sub2api_mode.default_proxy = '';
+                }
                 if (!this.config.fvia) {
                     this.config.fvia = { token: '' };
                 }

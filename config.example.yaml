@@ -236,6 +236,7 @@ sub2api_mode:
   account_group_ids: ""
   enable_ws_mode: true
   test_model: "gpt-5.2"
+  default_proxy: ""
 
 hero_sms:
   enabled: false
