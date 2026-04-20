@@ -33,7 +33,7 @@ from utils.register import run, refresh_oauth_token as _refresh_oauth_token
 from utils.proxy_manager import smart_switch_node
 from utils.integrations.sub2api_client import Sub2APIClient
 from utils.integrations.tg_notifier import send_tg_msg_sync
-
+from utils.email_providers.postman_center import global_postman_fleet
 
 _stats_lock = threading.Lock()
 sub_fail_counts = {}
@@ -600,9 +600,19 @@ def handle_registration_result(result: Any, cpa_upload: bool = False, run_ctx: d
         account_email = token_data.get("email", "unknown")
 
         # 存入本地数据库
-        if (cpa_upload and cfg.SAVE_TO_LOCAL_IN_CPA_MODE) or not cpa_upload:
+        if cpa_upload:
+            should_sync = cfg.SAVE_TO_LOCAL_IN_CPA_MODE
+            mode_label = "CPA模式"
+        elif cfg.ENABLE_SUB2API_MODE:
+            should_sync = cfg.SUB2API_SAVE_TO_LOCAL
+            mode_label = "Sub2API模式"
+        else:
+            should_sync = True
+            mode_label = "常规模式"
+
+        if should_sync:
             if db_manager.save_account_to_db(account_email, password, token_json_str):
-                print(f"[{ts()}] [SUCCESS] 账号密码与 Token 已安全存入: {mask_email(account_email)}")
+                print(f"[{ts()}] [SUCCESS] [{mode_label}] 账号密码与 Token 已安全存入: {mask_email(account_email)}")
 
         # CPA 云端上传
         if cpa_upload:
@@ -970,6 +980,7 @@ def normal_main_loop(args, stop_event: threading.Event, executor=None):
 
                 if status == "success":
                     success_count += 1
+            global_postman_fleet.clear_fleet()
 
         except Exception as e:
             print(f"[{ts()}] [ERROR] 发生未捕获全局异常: {e}")
@@ -1185,7 +1196,7 @@ async def cpa_main_loop(args, async_stop_event: asyncio.Event, executor=None):
                         elif status == "retry_403":
                             await asyncio.sleep(10)
                         await asyncio.sleep(5)
-
+                    global_postman_fleet.clear_fleet()
                 print(f"[{ts()}] [SUCCESS] 本轮补货完成！累计入库: {success_in_this_cycle} 个。")
             else:
                 print(f"[{ts()}] [INFO] 仓库存量充足，无需补发。")
@@ -1373,6 +1384,7 @@ async def sub2api_main_loop(args, async_stop_event: asyncio.Event, executor=None
                         try: await asyncio.wait_for(async_stop_event.wait(), timeout=5)
                         except asyncio.TimeoutError: pass
 
+                    global_postman_fleet.clear_fleet()
                 print(f"[{ts()}] [SUCCESS] 本轮补货完成！累计入库 Sub2API: {success_in_this_cycle} 个。")
             else:
                 print(f"[{ts()}] [INFO] 仓库存量充足，无需补发。")

@@ -187,8 +187,7 @@ createApp({
             return Math.ceil(this.totalAccounts / this.pageSize) || 1;
         },
         filteredAccounts() {
-            if (!this.hideRegisterOnlyAccounts) return this.accounts;
-            return this.accounts.filter(acc => acc && acc.status !== '仅注册成功');
+            return this.accounts;
         },
         cloudTotalPages() {
             return Math.ceil(this.cloudTotal / this.cloudPageSize) || 1;
@@ -502,7 +501,12 @@ createApp({
                 this.currentPage = 1;
             }
             try {
-                const res = await this.authFetch(`/api/accounts?page=${this.currentPage}&page_size=${this.pageSize}`);
+                let url = `/api/accounts?page=${this.currentPage}&page_size=${this.pageSize}`;
+                if (this.hideRegisterOnlyAccounts) {
+                    url += '&hide_reg=1';
+                }
+
+                const res = await this.authFetch(url);
                 const data = await res.json();
                 if(data.status === 'success') {
                     this.accounts = data.data ? data.data : data;
@@ -706,10 +710,9 @@ createApp({
         },
         toggleHideRegisterOnlyAccounts() {
             this.hideRegisterOnlyAccounts = !this.hideRegisterOnlyAccounts;
-            if (!this.selectedAccounts.length) return;
-            this.selectedAccounts = this.selectedAccounts.filter(acc => this.filteredAccounts.includes(acc));
+            this.currentPage = 1;
+            this.fetchAccounts(true);
         },
-
 		async toggleSystem() {
             if (this.isToggling) return;
             this.isToggling = true;

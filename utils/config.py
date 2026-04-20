@@ -180,6 +180,7 @@ def init_config():
 
 _c: dict = {}
 WEB_PASSWORD: str = "admin"
+RETAIN_REG_ONLY: bool = False
 ENABLE_SUB_DOMAINS: bool = False
 SUB_DOMAIN_COUNT: int = 10
 EMAIL_API_MODE: str = ""
@@ -225,6 +226,9 @@ REMOVE_ON_LIMIT_REACHED: bool = False
 REMOVE_DEAD_ACCOUNTS: bool = False
 CPA_THREADS: int = 10
 CPA_AUTO_CHECK: bool = True
+CPA_RETAIN_REG_ONLY: bool = False
+
+
 CHECK_INTERVAL_MINUTES: int = 60
 ENABLE_TOKEN_REVIVE: bool = False
 SUB_DOMAIN_LEVEL: int = 1
@@ -250,6 +254,7 @@ SUB2API_ACCOUNT_GROUP_IDS: list = []
 SUB2API_ENABLE_WS_MODE: bool = True
 SUB2API_DEFAULT_PROXY: str = ""
 SUB2API_DEFAULT_PROXY_POOL: list = []
+SUB2API_RETAIN_REG_ONLY: bool = False
 
 LUCKMAIL_PREFERRED_DOMAIN: str = ""
 LUCKMAIL_EMAIL_TYPE: str = ""
@@ -384,6 +389,7 @@ def reload_all_configs(new_config_dict=None):
     global LOCAL_MS_SUFFIX_MODE, LOCAL_MS_SUFFIX_LEN_MIN, LOCAL_MS_SUFFIX_LEN_MAX
     global DB_TYPE, MYSQL_CFG
     global MAX_LOG_LINES
+    global CPA_RETAIN_REG_ONLY, SUB2API_RETAIN_REG_ONLY, RETAIN_REG_ONLY
 
     base_yaml_config = init_config()
 
@@ -480,6 +486,7 @@ def reload_all_configs(new_config_dict=None):
         return group_ids
 
     WEB_PASSWORD = str(_c.get("web_password", "admin")).strip()
+    RETAIN_REG_ONLY = safe_bool(_c.get("retain_reg_only", False))
 
     EMAIL_API_MODE = _c.get("email_api_mode", "cloudflare_temp_email")
     MAIL_DOMAINS = _c.get("mail_domains", "")
@@ -552,6 +559,7 @@ def reload_all_configs(new_config_dict=None):
     CHECK_INTERVAL_MINUTES = _cpa.get("check_interval_minutes", 60)
     ENABLE_TOKEN_REVIVE = _cpa.get("enable_token_revive", False)
     CPA_AUTO_CHECK = _cpa.get("auto_check", True)
+    CPA_RETAIN_REG_ONLY = safe_bool(_cpa.get("retain_reg_only", False))
 
     _sub2api = _c.get("sub2api_mode", {})
     ENABLE_SUB2API_MODE = _sub2api.get("enable", False)
@@ -573,7 +581,10 @@ def reload_all_configs(new_config_dict=None):
     SUB2API_ACCOUNT_RATE_MULTIPLIER = safe_float(_sub2api.get("account_rate_multiplier", 1.0), 1.0, minimum=0.0)
     SUB2API_ACCOUNT_GROUP_IDS = parse_group_ids(_sub2api.get("account_group_ids", ""))
     SUB2API_ENABLE_WS_MODE = safe_bool(_sub2api.get("enable_ws_mode", True), default=True)
+    SUB2API_RETAIN_REG_ONLY = safe_bool(_sub2api.get("retain_reg_only", False))
+
     raw_sub2api_default_proxy = _sub2api.get("default_proxy", "")
+
     if isinstance(raw_sub2api_default_proxy, list):
         SUB2API_DEFAULT_PROXY = "\n".join(str(item).strip() for item in raw_sub2api_default_proxy if str(item).strip())
     else:

@@ -466,8 +466,8 @@ def get_cf_global_status(main_domain: str, token: str = Depends(verify_token)):
         return {"status": "error", "message": f"状态同步失败: {str(e)}"}
 
 @router.get("/api/accounts")
-async def get_accounts(page: int = Query(1), page_size: int = Query(50), token: str = Depends(verify_token)):
-    result = db_manager.get_accounts_page(page, page_size)
+async def get_accounts(page: int = Query(1), page_size: int = Query(50), hide_reg: str = Query("0"), token: str = Depends(verify_token)):
+    result = db_manager.get_accounts_page(page, page_size, hide_reg=hide_reg)
     return {"status": "success", "data": result["data"], "total": result["total"], "page": page, "page_size": page_size}
 
 
