@@ -476,35 +476,35 @@ def get_email_and_token(proxies: Any = None) -> tuple:
     prefix, ai_enabled = _get_ai_data_package()
 
     if cfg.ENABLE_SUB_DOMAINS:
-        sticky = getattr(_thread_data, 'sticky_domain', None)
-        if sticky:
-            selected_domain = sticky
-            print(f"[{cfg.ts()}] [INFO] 多级域名模式 - 沿用上一轮成功域名: {mask_email(selected_domain)}")
+        # sticky = getattr(_thread_data, 'sticky_domain', None)
+        # if sticky:
+        #     selected_domain = sticky
+        #     print(f"[{cfg.ts()}] [INFO] 多级域名模式 - 沿用上一轮成功域名: {mask_email(selected_domain)}")
+        # else:
+        main_list = [d.strip() for d in cfg.MAIL_DOMAINS.split(",") if d.strip()]
+        if not main_list:
+            print(f"[{cfg.ts()}] [ERROR] 未配置主域名池，无法捏造子域！")
+            return None, None
+
+        selected_main = random.choice(main_list)
+        if getattr(cfg, 'RANDOM_SUB_DOMAIN_LEVEL', False):
+            level = random.randint(1, 7)
         else:
-            main_list = [d.strip() for d in cfg.MAIL_DOMAINS.split(",") if d.strip()]
-            if not main_list:
-                print(f"[{cfg.ts()}] [ERROR] 未配置主域名池，无法捏造子域！")
-                return None, None
+            try:
+                level = int(getattr(cfg, 'SUB_DOMAIN_LEVEL', 1))
+            except:
+                level = 1
 
-            selected_main = random.choice(main_list)
-            if getattr(cfg, 'RANDOM_SUB_DOMAIN_LEVEL', False):
-                level = random.randint(1, 7)
+        random_parts = []
+        for _ in range(level):
+            if ai_enabled and AI_KW_POOL:
+                kw = AI_KW_POOL.pop(0)
+                random_parts.append(f"{kw}-{''.join(random.choices(string.ascii_lowercase + string.digits, k=4))}")
             else:
-                try:
-                    level = int(getattr(cfg, 'SUB_DOMAIN_LEVEL', 1))
-                except:
-                    level = 1
+                random_parts.append(''.join(random.choices(string.ascii_lowercase + string.digits, k=8)))
 
-            random_parts = []
-            for _ in range(level):
-                if ai_enabled and AI_KW_POOL:
-                    kw = AI_KW_POOL.pop(0)
-                    random_parts.append(f"{kw}-{''.join(random.choices(string.ascii_lowercase + string.digits, k=4))}")
-                else:
-                    random_parts.append(''.join(random.choices(string.ascii_lowercase + string.digits, k=8)))
-
-            selected_domain = ".".join(random_parts) + f".{selected_main}"
-            _thread_data.sticky_domain = selected_domain
+        selected_domain = ".".join(random_parts) + f".{selected_main}"
+        _thread_data.sticky_domain = selected_domain
     else:
         domain_list = [d.strip() for d in cfg.MAIL_DOMAINS.split(",") if d.strip()]
         if not domain_list:
