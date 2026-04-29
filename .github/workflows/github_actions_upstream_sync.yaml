@@ -1,0 +1,59 @@
+name: Upstream Sync
+
+on:
+  schedule:
+    - cron: "51 * * * *"
+  workflow_dispatch:
+    inputs:
+      target_branch:
+        description: "Branch to sync"
+        required: false
+        default: "main"
+
+permissions:
+  contents: write
+
+env:
+  UPSTREAM_REPO: ${{ github.event.repository.parent.full_name || 'wenfxl/openai-cpa' }}
+  TARGET_BRANCH: ${{ github.event.inputs.target_branch || 'main' }}
+
+jobs:
+  sync_push:
+    runs-on: ubuntu-latest
+    name: Upstream Sync with Backup Tags
+
+    steps:
+      - name: Checkout target repository
+        id: checkout
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ env.TARGET_BRANCH }}
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Sync upstream changes
+        id: sync
+        uses: aormsby/Fork-Sync-With-Upstream-action@main
+        with:
+          target_sync_branch: ${{ env.TARGET_BRANCH }}
+          target_repo_token: ${{ secrets.GITHUB_TOKEN }}
+          upstream_sync_repo: ${{ env.UPSTREAM_REPO }}
+          upstream_sync_branch: ${{ env.TARGET_BRANCH }}
+          upstream_repo_access_token: ${{ secrets.UPSTREAM_REPO_SECRET }}
+
+      - name: Push backup tag
+        id: push
+        if: steps.sync.outputs.has_new_commits == 'true'
+        run: |
+          echo "Creating new backup tag: $TAG"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          # git fetch origin ${{ env.TARGET_BRANCH }}
+
+          # COMMIT_HASH=$(git rev-parse --short origin/${{ env.TARGET_BRANCH }})
+          COMMIT_HASH=$(git rev-parse --short HEAD)
+          TAG="backup-${{ env.TARGET_BRANCH }}-${COMMIT_HASH}"
+
+          # git tag "$TAG" "origin/${{ env.TARGET_BRANCH }}"
+          git tag "$TAG"
+          git push origin "$TAG"
