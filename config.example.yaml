@@ -5,6 +5,10 @@
 # https://github.com/s12ryt/mail-curl
 
 reg_mode: "email"
+# 注册平台切换: openai(默认) | grok
+reg_provider: "openai"
+grok:
+  oauth_timeout: 180
 # 可选值: "imap" / "freemail" / "cloudflare_temp_email" / "cloudmail" / "mail_curl" / "luckmail"
 email_api_mode: "cloudflare_temp_email"
 
