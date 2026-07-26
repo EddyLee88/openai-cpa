@@ -108,4 +108,8 @@ def ensure_embedded_ready(*, force: bool = False, wait_sec: float = 60.0) -> Tup
 
 
 def stop_embedded_solver(timeout: float = 8.0) -> None:
-    return None
+    try:
+        from .browser_pool import shutdown_browser_pool
+        shutdown_browser_pool(timeout=timeout)
+    except Exception:
+        pass
