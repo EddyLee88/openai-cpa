@@ -32,24 +32,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
-RUN pip install --no-cache-dir --upgrade pip \
- && pip install --no-cache-dir -r requirements.txt
-
-RUN set -e; \
-    i=1; \
-    while [ "$i" -le 3 ]; do \
-      echo "[camoufox] fetch attempt $i/3"; \
-      if python -m camoufox fetch; then \
-        break; \
-      fi; \
-      if [ "$i" -eq 3 ]; then \
-        echo "[camoufox] fetch failed after 3 attempts"; \
-        exit 1; \
-      fi; \
-      i=$((i + 1)); \
-      sleep 8; \
-    done; \
-    python -c "from pathlib import Path; from camoufox.pkgman import INSTALL_DIR, LAUNCH_FILE, OS_NAME; d=Path(str(INSTALL_DIR)); n=(LAUNCH_FILE.get(OS_NAME) if isinstance(LAUNCH_FILE, dict) else None); cs=([d/n] if n else []) + [d/'camoufox-bin', d/'camoufox.exe']; r=next((c for c in cs if c.is_file() and c.stat().st_size>0), None); assert r is not None, 'Camoufox browser binary missing after fetch dir=%s sample=%s' % (d, [p.name for p in (list(d.iterdir())[:20] if d.is_dir() else [])]); print('[camoufox] browser ready: %s' % r)"
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt && \
+    python -m camoufox fetch
 
 COPY . .
 
