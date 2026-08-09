@@ -1,10 +1,11 @@
+from __future__ import annotations
 import json
 import time
 import datetime
 import urllib.parse
 import threading
 from concurrent.futures import ThreadPoolExecutor
-from typing import List, Any, Optional, Union
+from typing import List, Any, Optional, Union, Tuple
 from fastapi import APIRouter, Depends, Query, BackgroundTasks
 from pydantic import BaseModel
 from curl_cffi import requests as cffi_requests
@@ -74,7 +75,7 @@ def _grok2api_request(method: str, path: str, token_value: str, **kwargs):
     return cffi_requests.request(method, url, headers=headers, timeout=kwargs.pop("timeout", 60), impersonate="chrome110", **kwargs)
 
 
-def _grok2api_list_accounts(token_value: str, provider: str | None = None, page_size: int = 500) -> tuple[bool, list[dict], str]:
+def _grok2api_list_accounts(token_value: str, provider: Optional[str] = None, page_size: int = 500) -> Tuple[bool, List[dict], str]:
     items: list[dict] = []
     page = 1
     total = None
