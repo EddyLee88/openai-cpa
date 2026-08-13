@@ -210,22 +210,23 @@ def run(
         session_cookies.setdefault("sso", sso)
         session_cookies.setdefault("sso-rw", sso)
         _log("SSO 提取成功", email)
-        bot_flag_dict = inspect_sso_account_state(session_cookies, proxy=proxy or "")
-        if bot_flag_dict["found"]:
-            bfs = bot_flag_dict.get('bot_flag_source')
-            iq_status = "账号智商正常" if bfs == 0 else f"账号已降智({bfs}) 可能需更换IP"
-            is_denied = bot_flag_dict.get('denied')
-            deny_status = "被拒(死号)" if is_denied else "通过"
-            risk_val = bot_flag_dict.get('risk')
-            risk_display = risk_val if risk_val is not None else "无"
-            _log(f"状态: {iq_status}，注册: {deny_status}，风险值: {risk_display}", email)
-            discard_on_downgrade = getattr(cfg, "DISCARD_ON_DOWNGRADE", False)
-            if is_denied or (bfs != 0 and discard_on_downgrade):
-                _log("⚠️ 触发风控拒绝或[降智丢弃]规则，账号已作废不入库，中止流程", email)
-                run_ctx["discarded"] = True
-                return None, None
-        else:
-            _log(f"账号状态检测失败: {bot_flag_dict['error']}", email)
+        discard_on_downgrade = getattr(cfg, "DISCARD_ON_DOWNGRADE", False)
+        if discard_on_downgrade:
+            bot_flag_dict = inspect_sso_account_state(session_cookies, proxy=proxy or "")
+            if bot_flag_dict["found"]:
+                bfs = bot_flag_dict.get('bot_flag_source')
+                iq_status = "账号智商正常" if bfs == 0 else f"账号已降智({bfs}) 可能需更换IP"
+                is_denied = bot_flag_dict.get('denied')
+                deny_status = "被拒(死号)" if is_denied else "通过"
+                risk_val = bot_flag_dict.get('risk')
+                risk_display = risk_val if risk_val is not None else "无"
+                _log(f"状态: {iq_status}，注册: {deny_status}，风险值: {risk_display}", email)
+                if is_denied or bfs != 0:
+                    _log("⚠️ 触发风控拒绝或[降智丢弃]规则，账号已作废不入库，中止流程", email)
+                    run_ctx["discarded"] = True
+                    return None, None
+            else:
+                _log(f"账号状态检测失败: {bot_flag_dict['error']}", email)
 
         _import_grok_web_before_oauth(sso, email, run_ctx)
         try:
@@ -375,7 +376,7 @@ def inspect_sso_account_state(session_cookies: dict, proxy: str = "") -> dict:
 
         final_result["status_code"] = response.status_code
         if response.status_code >= 400:
-            suffix = " (可能是 Cloudflare 限制)" if response.status_code in (403, 429, 503) else ""
+            suffix = " 代理被CF物理级拉黑，请更换IP" if response.status_code in (403, 429, 503) else ""
             final_result["error"] = f"请求失败 (HTTP {response.status_code}){suffix}"
             return final_result
         parsed_data = _parse_grok_account_state(response.text)
