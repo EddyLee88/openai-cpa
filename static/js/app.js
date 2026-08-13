@@ -406,7 +406,7 @@ createApp({
             evtSource: null,
             stats: {
                 success: 0, failed: 0, retries: 0, total: 0, target: 0,
-                pwd_blocked: 0, phone_verify: 0,
+                pwd_blocked: 0, phone_verify: 0, discard_count: 0,
                 success_rate: '0.0%', elapsed: '0.0s', avg_time: '0.0s', progress_pct: '0%',
                 mode: '未启动',
                 memory: { rss_mb: null, predicted_mid_mb: null, predicted_high_mb: null, safety_level: 'unknown', safety_label: '无数据' }
@@ -772,6 +772,9 @@ createApp({
                 if (left.domainIndex !== right.domainIndex) return left.domainIndex - right.domainIndex;
                 return String(a?.domain || '').localeCompare(String(b?.domain || ''));
             });
+        },
+        grokMode() {
+            return !!this.config && this.config.reg_provider === 'grok';
         }
     },
     methods: {
