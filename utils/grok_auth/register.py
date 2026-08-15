@@ -352,7 +352,9 @@ def _parse_grok_account_state(html_text: str) -> dict:
 
 def inspect_sso_account_state(session_cookies: dict, proxy: str = "") -> dict:
     url = "https://grok.com/"
-    proxies = {"http": proxy, "https": proxy} if proxy else {}
+    GROK_INSPECT_PROXY = str(getattr(cfg, 'GROK_INSPECT_PROXY', '')).strip()
+    use_proxy = GROK_INSPECT_PROXY or proxy
+    proxies = {"http": use_proxy, "https": use_proxy} if use_proxy else None
 
     final_result = {
         "status_code": 0,
