@@ -68,7 +68,7 @@ def _format_proxy(proxy: Optional[str]) -> Optional[str]:
         return None
     try:
         proxy = cfg.format_docker_url(proxy)
-    except Exception:
+    except:
         pass
     proxy = str(proxy).strip()
     if proxy.startswith("socks5://"):
@@ -143,8 +143,8 @@ def run(
 
     email = ""
     password = ""
-    old_http = os.environ.get("HTTP_PROXY")
-    old_https = os.environ.get("HTTPS_PROXY")
+    # old_http = os.environ.get("HTTP_PROXY")
+    # old_https = os.environ.get("HTTPS_PROXY")
 
     try:
         email, email_jwt = get_email_and_token(
@@ -160,9 +160,9 @@ def run(
         password = _generate_password()
         _log("邮箱就绪", email)
 
-        if proxy:
-            os.environ["HTTP_PROXY"] = proxy
-            os.environ["HTTPS_PROXY"] = proxy
+        # if proxy:
+        #     os.environ["HTTP_PROXY"] = proxy
+        #     os.environ["HTTPS_PROXY"] = proxy
 
         def _fetch_code() -> str:
             return str(
@@ -280,15 +280,16 @@ def run(
             set_last_email(email)
         return None, None
     finally:
-        if proxy:
-            if old_http is None:
-                os.environ.pop("HTTP_PROXY", None)
-            else:
-                os.environ["HTTP_PROXY"] = old_http
-            if old_https is None:
-                os.environ.pop("HTTPS_PROXY", None)
-            else:
-                os.environ["HTTPS_PROXY"] = old_https
+        pass
+        # if proxy:
+        #     if old_http is None:
+        #         os.environ.pop("HTTP_PROXY", None)
+        #     else:
+        #         os.environ["HTTP_PROXY"] = old_http
+        #     if old_https is None:
+        #         os.environ.pop("HTTPS_PROXY", None)
+        #     else:
+        #         os.environ["HTTPS_PROXY"] = old_https
 
 
 def _parse_grok_account_state(html_text: str) -> dict:
