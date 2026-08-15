@@ -285,6 +285,7 @@ CM_WEBHOOK_SECRET: str = ""
 MC_API_BASE: str = ""
 MC_KEY: str = ""
 DEFAULT_PROXY: str = ""
+GROK_INSPECT_PROXY = ""
 ENABLE_MULTI_THREAD_REG: bool = False
 REG_THREADS: int = 3
 MAX_OTP_RETRIES: int = 5
@@ -535,7 +536,7 @@ def reload_all_configs(new_config_dict=None):
     global FREEMAIL_API_URL, FREEMAIL_API_TOKEN, FREEMAIL_LOCAL_WEBHOOK, FREEMAIL_WEBHOOK_SECRET
     global CM_API_URL, CM_ADMIN_EMAIL, CM_ADMIN_PASS, CM_LOCAL_WEBHOOK, CM_WEBHOOK_SECRET
     global MC_API_BASE, MC_KEY
-    global DEFAULT_PROXY
+    global DEFAULT_PROXY, GROK_INSPECT_PROXY
     global SUB_DOMAIN_LEVEL, RANDOM_SUB_DOMAIN_LEVEL
     global ENABLE_MULTI_THREAD_REG, REG_THREADS, MAX_OTP_RETRIES, OTP_POLL_MAX_ATTEMPTS
     global USE_PROXY_FOR_EMAIL, ENABLE_EMAIL_MASKING
@@ -822,7 +823,7 @@ def reload_all_configs(new_config_dict=None):
     USE_ORIGINAL_PASSWORD_FLOW = bool(_ocpa.get("use_original_password_flow", False))
 
     DEFAULT_PROXY = format_docker_url(_c.get("default_proxy", ""))
-
+    GROK_INSPECT_PROXY = format_docker_url(_c.get("check_proxy", ""))
     ENABLE_MULTI_THREAD_REG = _c.get("enable_multi_thread_reg", False)
     REG_THREADS = _c.get("reg_threads", 3)
     MAX_OTP_RETRIES = _c.get("max_otp_retries", 5)

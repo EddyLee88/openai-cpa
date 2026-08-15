@@ -445,7 +445,7 @@ createApp({
                 cf_key: false, cf_modal_key: false,
                 mail_domains: true, cf_email: true, gpt_base: true, imap_user: true,
                 free_url: true, cm_url: true, cm_email: true, mc_base: true,
-                ai_base: true, cluster_url: true, proxy: true, clash_api: true,
+                ai_base: true, cluster_url: true, proxy: true, clash_api: true,checkProxy:true,
                 clash_test: true, tg_token: false, tg_chatid: false, cpa_url: true, sub_url: true,
                 cluster_secret: false, hero_key: false, duck_token: false, duck_cookie: false,
                 smsbower_key: false,fivesim_key: false,smsbower_cookie: false,
