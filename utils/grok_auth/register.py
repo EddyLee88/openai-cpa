@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-"""Grok 注册入口：邮箱 -> Camoufox 注册 -> device-flow。"""
 from __future__ import annotations
 
 import json
@@ -105,14 +104,15 @@ def _import_grok_web_before_oauth(
     run_ctx: dict,
     sso_only: bool = False,
 ) -> None:
-    """Import Grok Web SSO; SSO-only mode always forces this import."""
     if not sso_only and not getattr(cfg, "GROK2API_IMPORT_SSO_AS_GROK_WEB", False):
         return
 
-    # Import lazily to avoid a module cycle while core_engine dispatches Grok registration.
-    from utils import core_engine
+    from utils.integrations.grok2api_client import (
+        grok2api_admin_login,
+        import_web_sso,
+    )
 
-    ok_login, grok_token, login_msg = core_engine.grok2api_admin_login()
+    ok_login, grok_token, login_msg = grok2api_admin_login()
     if not ok_login:
         run_ctx["grok_web_import_ok"] = False
         run_ctx["grok_web_import_message"] = login_msg
@@ -120,7 +120,7 @@ def _import_grok_web_before_oauth(
         _log(f"Grok Web SSO 导入跳过: {_short_err(login_msg)}；{next_action}", email)
         return
 
-    web_ok, web_msg = core_engine._grok2api_import_web_sso(sso, grok_token)
+    web_ok, web_msg = import_web_sso(sso, grok_token)
     run_ctx["grok_web_import_ok"] = web_ok
     run_ctx["grok_web_import_message"] = web_msg
     if web_ok:
