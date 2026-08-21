@@ -230,6 +230,8 @@ def run(
                 if is_denied or bfs != 0:
                     _log("⚠️ 触发风控拒绝或[降智丢弃]规则，账号已作废不入库，中止流程", email)
                     run_ctx["discarded"] = True
+                    run_ctx["discarded_email_failure"] = True
+                    run_ctx["mail_domain_failure_reason"] = "discarded_email"
                     return None, None
             else:
                 _log(f"账号状态检测失败: {bot_flag_dict['error']}", email)

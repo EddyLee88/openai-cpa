@@ -1247,14 +1247,22 @@ def dispatch_register(proxy, run_ctx=None, assigned_domain=None, batch_id=None, 
         run_ctx = {}
     provider = str(getattr(cfg, "REG_PROVIDER", "openai") or "openai").strip().lower()
     if provider == "grok":
+        import os
+        from utils.grok_auth.browser_recycler import mark_task_finished, recycle_before_next_task
         from utils.grok_auth.register import run as grok_run
-        return grok_run(
-            proxy,
-            run_ctx=run_ctx,
-            assigned_domain=assigned_domain,
-            batch_id=batch_id,
-            worker_index=worker_index,
-        )
+
+        headless_raw = str(os.environ.get("GROK_BROWSER_SIGNUP_HEADLESS", "1") or "1").strip().lower()
+        recycle_before_next_task(headless=headless_raw not in {"0", "false", "no", "off"})
+        try:
+            return grok_run(
+                proxy,
+                run_ctx=run_ctx,
+                assigned_domain=assigned_domain,
+                batch_id=batch_id,
+                worker_index=worker_index,
+            )
+        finally:
+            mark_task_finished()
     return run(
         proxy,
         run_ctx=run_ctx,
@@ -1262,7 +1270,6 @@ def dispatch_register(proxy, run_ctx=None, assigned_domain=None, batch_id=None, 
         batch_id=batch_id,
         worker_index=worker_index,
     )
-
 
 def run_and_refresh(proxy, args, cpa_upload=False, skip_switch=False, assigned_domain=None, batch_id=None, worker_index=None, grok2api_upload=False):
     proxy = format_docker_url(proxy)
