@@ -99,9 +99,14 @@ def _short_err(text: str) -> str:
     return short
 
 
-def _import_grok_web_before_oauth(sso: str, email: str, run_ctx: dict) -> None:
-    """Best-effort Grok Web import; it must never block Build OAuth."""
-    if not getattr(cfg, "GROK2API_IMPORT_SSO_AS_GROK_WEB", False):
+def _import_grok_web_before_oauth(
+    sso: str,
+    email: str,
+    run_ctx: dict,
+    sso_only: bool = False,
+) -> None:
+    """Import Grok Web SSO; SSO-only mode always forces this import."""
+    if not sso_only and not getattr(cfg, "GROK2API_IMPORT_SSO_AS_GROK_WEB", False):
         return
 
     # Import lazily to avoid a module cycle while core_engine dispatches Grok registration.
@@ -111,7 +116,8 @@ def _import_grok_web_before_oauth(sso: str, email: str, run_ctx: dict) -> None:
     if not ok_login:
         run_ctx["grok_web_import_ok"] = False
         run_ctx["grok_web_import_message"] = login_msg
-        _log(f"Grok Web SSO 导入跳过: {_short_err(login_msg)}；继续获取 Build OAuth", email)
+        next_action = "SSO-only 模式无法继续" if sso_only else "继续获取 Build OAuth"
+        _log(f"Grok Web SSO 导入跳过: {_short_err(login_msg)}；{next_action}", email)
         return
 
     web_ok, web_msg = core_engine._grok2api_import_web_sso(sso, grok_token)
@@ -120,7 +126,8 @@ def _import_grok_web_before_oauth(sso: str, email: str, run_ctx: dict) -> None:
     if web_ok:
         _log_success("Grok Web SSO 已先行导入", email)
     else:
-        _log(f"{_short_err(web_msg)}；继续获取 Build OAuth", email)
+        next_action = "SSO-only 模式无法继续" if sso_only else "继续获取 Build OAuth"
+        _log(f"{_short_err(web_msg)}；{next_action}", email)
 
 
 def run(
@@ -236,7 +243,7 @@ def run(
             else:
                 _log(f"账号状态检测失败: {bot_flag_dict['error']}", email)
 
-        _import_grok_web_before_oauth(sso, email, run_ctx)
+        _import_grok_web_before_oauth(sso, email, run_ctx, sso_only=is_sso_only)
 
         if is_sso_only:
             # SSO-only 模式：跳过 OAuth device flow，直接返回简化 JSON

@@ -1205,9 +1205,19 @@ def handle_registration_result(result: Any, cpa_upload: bool = False, run_ctx: d
 
         # Grok/xAI 注册完成后导入 Grok2API。仓管补货模式下，导入失败不计作本轮补货成功。
         if is_grok_token and (grok2api_upload or getattr(cfg, "GROK2API_AUTO_IMPORT_AFTER_REGISTER", False)):
-            ok, grok_msg = import_to_grok2api(token_data)
+            is_sso_record = str(token_data.get("status") or "").lower() == "grok_sso"
+            if is_sso_record:
+                ok = bool(run_ctx and run_ctx.get("grok_web_import_ok"))
+                grok_msg = str(
+                    (run_ctx or {}).get("grok_web_import_message")
+                    or "Grok Web SSO 未完成先行导入"
+                )
+            else:
+                ok, grok_msg = import_to_grok2api(token_data)
+
             if ok:
-                print(f"[{ts()}] [SUCCESS] [Grok2API] 注册账号 {mask_email(account_email)} 已自动导入 Grok2API！")
+                import_type = "Grok Web SSO" if is_sso_record else "Build OAuth"
+                print(f"[{ts()}] [SUCCESS] [Grok2API] 注册账号 {mask_email(account_email)} 的 {import_type} 已导入！")
                 try:
                     db_manager.update_account_push_info([account_email], "GROK2API", mode="sync")
                 except Exception:
