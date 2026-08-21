@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-"""Grok 注册入口：邮箱 -> Camoufox 注册 -> device-flow。"""
 from __future__ import annotations
 
 import json
@@ -99,28 +98,36 @@ def _short_err(text: str) -> str:
     return short
 
 
-def _import_grok_web_before_oauth(sso: str, email: str, run_ctx: dict) -> None:
-    """Best-effort Grok Web import; it must never block Build OAuth."""
-    if not getattr(cfg, "GROK2API_IMPORT_SSO_AS_GROK_WEB", False):
+def _import_grok_web_before_oauth(
+    sso: str,
+    email: str,
+    run_ctx: dict,
+    sso_only: bool = False,
+) -> None:
+    if not sso_only and not getattr(cfg, "GROK2API_IMPORT_SSO_AS_GROK_WEB", False):
         return
 
-    # Import lazily to avoid a module cycle while core_engine dispatches Grok registration.
-    from utils import core_engine
+    from utils.integrations.grok2api_client import (
+        grok2api_admin_login,
+        import_web_sso,
+    )
 
-    ok_login, grok_token, login_msg = core_engine.grok2api_admin_login()
+    ok_login, grok_token, login_msg = grok2api_admin_login()
     if not ok_login:
         run_ctx["grok_web_import_ok"] = False
         run_ctx["grok_web_import_message"] = login_msg
-        _log(f"Grok Web SSO 导入跳过: {_short_err(login_msg)}；继续获取 Build OAuth", email)
+        next_action = "SSO-only 模式无法继续" if sso_only else "继续获取 Build OAuth"
+        _log(f"Grok Web SSO 导入跳过: {_short_err(login_msg)}；{next_action}", email)
         return
 
-    web_ok, web_msg = core_engine._grok2api_import_web_sso(sso, grok_token)
+    web_ok, web_msg = import_web_sso(sso, grok_token)
     run_ctx["grok_web_import_ok"] = web_ok
     run_ctx["grok_web_import_message"] = web_msg
     if web_ok:
         _log_success("Grok Web SSO 已先行导入", email)
     else:
-        _log(f"{_short_err(web_msg)}；继续获取 Build OAuth", email)
+        next_action = "SSO-only 模式无法继续" if sso_only else "继续获取 Build OAuth"
+        _log(f"{_short_err(web_msg)}；{next_action}", email)
 
 
 def run(
@@ -230,11 +237,13 @@ def run(
                 if is_denied or bfs != 0:
                     _log("⚠️ 触发风控拒绝或[降智丢弃]规则，账号已作废不入库，中止流程", email)
                     run_ctx["discarded"] = True
+                    run_ctx["discarded_email_failure"] = True
+                    run_ctx["mail_domain_failure_reason"] = "discarded_email"
                     return None, None
             else:
                 _log(f"账号状态检测失败: {bot_flag_dict['error']}", email)
 
-        _import_grok_web_before_oauth(sso, email, run_ctx)
+        _import_grok_web_before_oauth(sso, email, run_ctx, sso_only=is_sso_only)
 
         if is_sso_only:
             # SSO-only 模式：跳过 OAuth device flow，直接返回简化 JSON
